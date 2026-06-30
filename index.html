@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Geometry Proof Review Board</title>
+<style>
+:root{
+--navy:#0f2d44;--blue:#2f80a8;--green:#3ca65c;--yellow:#f2b705;--purple:#9c64a6;--red:#c0392b;
+--ltblue:#f0f7fb;--ltgreen:#eefaf1;--ltyellow:#fff8e6;--ltred:#fdecea;--gray:#d6e6ef;--text:#1f2933;
+}
+body{font-family:Arial,sans-serif;background:#f0f7fb;color:var(--text);margin:0;padding:20px}
+.container{max-width:1100px;margin:0 auto}
+.hero{background:var(--navy);color:white;padding:24px;border-radius:12px;text-align:center}
+.card{background:white;border-left:6px solid var(--blue);padding:18px;border-radius:10px;margin-top:18px}
+.green{background:var(--ltgreen);border-left-color:var(--green)}
+.yellow{background:var(--ltyellow);border-left-color:var(--yellow)}
+.red{background:var(--ltred);border-left-color:var(--red)}
+button{background:var(--navy);color:white;border:none;padding:11px 16px;border-radius:8px;cursor:pointer;margin:6px}
+button:hover{background:#163d5c}
+.grid{display:grid;grid-template-columns:1fr 1.2fr;gap:18px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.diagram{background:white;border:1px solid var(--gray);border-radius:10px;text-align:center;padding:10px;overflow-x:auto}
+svg{max-width:100%;height:auto}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th{background:var(--navy);color:white}
+th,td{border:1px solid var(--gray);padding:10px;vertical-align:middle}
+tr:nth-child(even){background:#f6f9fb}
+.review-row{cursor:pointer}
+.review-row.selected{background:#fff8e6!important;outline:3px solid var(--yellow)}
+.feedback{display:none;padding:14px;border-radius:8px;margin-top:12px;font-weight:bold}
+.feedback.correct{display:block;background:var(--ltgreen);color:#1f6b35;border-left:6px solid var(--green)}
+.feedback.incorrect{display:block;background:var(--ltred);color:#8a1f11;border-left:6px solid var(--red)}
+select{width:100%;padding:8px;border-radius:6px;border:1px solid #b8c7d1;font-size:15px;margin-top:6px}
+.code{background:var(--navy);color:white;padding:12px 18px;border-radius:8px;display:inline-block;font-size:22px}
+.hidden{display:none}
+</style>
+</head>
+
+<body>
+<div class="container" id="app">
+
+<section id="start">
+<div class="hero">
+<h1>🏛️ Geometry Proof Review Board</h1>
+<p>Review proofs. Approve correct reasoning. Repair flawed logic.</p>
+</div>
+
+<div class="card">
+<h2 style="color:var(--navy);margin-top:0;">Your Role</h2>
+<p>You are serving on the <strong>Geometry Proof Review Board</strong>.</p>
+<p>You will review two proof submissions:</p>
+<p>☐ <strong>Proof A</strong> is correct. Approve it after reviewing the logic.</p>
+<p>☐ <strong>Proof B</strong> contains one mistake. Find the incorrect row, identify the error, and choose the correction.</p>
+<button onclick="beginReview()">Begin Review</button>
+</div>
+</section>
+
+<section id="review" class="hidden">
+<div class="hero">
+<h1 id="reviewTitle">Proof Review</h1>
+<p id="reviewSubtitle"></p>
+</div>
+
+<div class="grid">
+<div>
+<div class="card">
+<h2 style="color:var(--navy);margin-top:0;">Diagram</h2>
+<div class="diagram" id="diagram"></div>
+</div>
+</div>
+
+<div>
+<div class="card">
+<h2 style="color:var(--navy);margin-top:0;">Two-Column Proof</h2>
+<div id="proofTable"></div>
+<div id="controls"></div>
+<div id="feedback" class="feedback"></div>
+</div>
+</div>
+</div>
+</section>
+
+<section id="finish" class="hidden">
+<div class="hero">
+<h1>🏆 Review Complete</h1>
+<p>You have been certified as a Geometry Proof Reviewer.</p>
+</div>
+<div class="card green" style="text-align:center;">
+<h2 style="color:var(--navy);">Completion Code</h2>
+<p class="code">PROOF-REVIEW-23</p>
+<p>Write this code down if your teacher asks for it.</p>
+<button onclick="location.reload()">Restart Activity</button>
+</div>
+</section>
+
+</div>
+
+<script>
+const correctProof = {
+title:"Proof A: Correct Proof Submission",
+subtitle:"Review the proof. If every step is valid, approve it.",
+type:"parallelogram",
+rows:[
+["ABCD is a parallelogram","Given"],
+["AB ≅ CD","Opposite sides of a parallelogram are congruent"],
+["BC ≅ DA","Opposite sides of a parallelogram are congruent"],
+["AC ≅ AC","Reflexive Property"],
+["△ABC ≅ △CDA","SSS"]
+]
+};
+
+const flawedProof = {
+title:"Proof B: Proof Needing Revision",
+subtitle:"This proof contains one mistake. Select the incorrect row and repair it.",
+type:"sas",
+rows:[
+["AB ≅ DE","Given"],
+["BC ≅ EF","Given"],
+["∠B ≅ ∠E","Given"],
+["△ABC ≅ △DEF","SSA"],
+["AC ≅ DF","CPCTC"]
+],
+badRow:3,
+mistake:"Wrong congruence theorem",
+repair:"SAS",
+explanation:"The proof has two pairs of corresponding sides and the included angle. The correct theorem is SAS, not SSA."
+};
+
+let stage=0;
+let selectedRow=null;
+
+function beginReview(){
+document.getElementById("start").classList.add("hidden");
+document.getElementById("review").classList.remove("hidden");
+loadCorrectProof();
+}
+
+function loadCorrectProof(){
+stage=1;
+selectedRow=null;
+document.getElementById("reviewTitle").textContent=correctProof.title;
+document.getElementById("reviewSubtitle").textContent=correctProof.subtitle;
+document.getElementById("diagram").innerHTML=diagram(correctProof.type);
+renderProof(correctProof.rows,false);
+document.getElementById("controls").innerHTML=`
+<button onclick="approveCorrect()">Approve Proof</button>
+<button onclick="rejectCorrect()">Reject Proof</button>
+`;
+hideFeedback();
+}
+
+function approveCorrect(){
+const f=document.getElementById("feedback");
+f.className="feedback correct";
+f.innerHTML="✅ Approved. This proof is valid because it uses parallelogram properties and the Reflexive Property to prove the triangles congruent by SSS.";
+setTimeout(loadFlawedProof,1200);
+}
+
+function rejectCorrect(){
+const f=document.getElementById("feedback");
+f.className="feedback incorrect";
+f.innerHTML="Not quite. This proof is actually valid. Check how the parallelogram properties and shared diagonal support SSS.";
+}
+
+function loadFlawedProof(){
+stage=2;
+selectedRow=null;
+document.getElementById("reviewTitle").textContent=flawedProof.title;
+document.getElementById("reviewSubtitle").textContent=flawedProof.subtitle;
+document.getElementById("diagram").innerHTML=diagram(flawedProof.type);
+renderProof(flawedProof.rows,true);
+document.getElementById("controls").innerHTML=`
+<h3 style="color:var(--navy);">Review Questions</h3>
+<p><strong>1.</strong> Click the first incorrect row in the proof.</p>
+
+<p><strong>2.</strong> What type of mistake is it?</p>
+<select id="mistakeType">
+<option value="">Choose...</option>
+<option>Wrong congruence theorem</option>
+<option>CPCTC used too early</option>
+<option>Statement not justified</option>
+<option>Given used incorrectly</option>
+<option>Missing reflexive property</option>
+</select>
+
+<p><strong>3.</strong> What should the correct reason be?</p>
+<select id="repairChoice">
+<option value="">Choose...</option>
+<option>SSS</option>
+<option>SAS</option>
+<option>ASA</option>
+<option>AAS</option>
+<option>CPCTC</option>
+<option>Reflexive Property</option>
+</select>
+
+<button onclick="submitRevision()">Submit Review</button>
+`;
+hideFeedback();
+}
+
+function renderProof(rows,clickable){
+let html=`<table><tr><th>#</th><th>Statement</th><th>Reason</th></tr>`;
+rows.forEach((r,i)=>{
+html+=`<tr class="${clickable?'review-row':''}" onclick="${clickable?`selectRow(${i})`:''}" id="row${i}">
+<td>${i+1}</td><td>${r[0]}</td><td>${r[1]}</td>
+</tr>`;
+});
+html+=`</table>`;
+document.getElementById("proofTable").innerHTML=html;
+}
+
+function selectRow(i){
+selectedRow=i;
+document.querySelectorAll(".review-row").forEach(r=>r.classList.remove("selected"));
+document.getElementById("row"+i).classList.add("selected");
+}
+
+function submitRevision(){
+const mistake=document.getElementById("mistakeType").value;
+const repair=document.getElementById("repairChoice").value;
+const f=document.getElementById("feedback");
+
+if(selectedRow===null || !mistake || !repair){
+f.className="feedback incorrect";
+f.innerHTML="Complete all three review steps: select the row, choose the mistake type, and choose the correction.";
+return;
+}
+
+if(selectedRow===flawedProof.badRow && mistake===flawedProof.mistake && repair===flawedProof.repair){
+f.className="feedback correct";
+f.innerHTML="✅ Revision required. Excellent review! " + flawedProof.explanation;
+setTimeout(finishActivity,1400);
+}else{
+f.className="feedback incorrect";
+f.innerHTML="🔎 Not quite. Look for the first row where the proof's logic breaks. The given information shows two sides and the included angle.";
+}
+}
+
+function finishActivity(){
+document.getElementById("review").classList.add("hidden");
+document.getElementById("finish").classList.remove("hidden");
+}
+
+function hideFeedback(){
+const f=document.getElementById("feedback");
+f.style.display="none";
+f.className="feedback";
+f.innerHTML="";
+}
+
+function diagram(type){
+if(type==="parallelogram") return `
+<svg width="620" height="330" viewBox="0 0 620 330" role="img" aria-label="Parallelogram with diagonal AC">
+<rect width="620" height="330" fill="#fff"/>
+<polygon points="150,230 410,230 500,90 240,90" fill="#fff" stroke="#1f9d23" stroke-width="4"/>
+<line x1="150" y1="230" x2="500" y2="90" stroke="#1f9d23" stroke-width="4"/>
+<text x="135" y="255" font-size="20" font-weight="bold">A</text>
+<text x="410" y="255" font-size="20" font-weight="bold">B</text>
+<text x="505" y="85" font-size="20" font-weight="bold">C</text>
+<text x="225" y="85" font-size="20" font-weight="bold">D</text>
+</svg>`;
+
+return `
+<svg width="620" height="310" viewBox="0 0 620 310" role="img" aria-label="SAS triangle proof diagram">
+<rect width="620" height="310" fill="#fff"/>
+<polygon points="80,230 210,230 140,70" fill="#fff" stroke="#1f9d23" stroke-width="4"/>
+<polygon points="390,230 520,230 450,70" fill="#fff" stroke="#1f9d23" stroke-width="4"/>
+<text x="80" y="255" font-size="20" font-weight="bold">A</text>
+<text x="210" y="255" font-size="20" font-weight="bold">B</text>
+<text x="140" y="60" font-size="20" font-weight="bold">C</text>
+<text x="390" y="255" font-size="20" font-weight="bold">D</text>
+<text x="520" y="255" font-size="20" font-weight="bold">E</text>
+<text x="450" y="60" font-size="20" font-weight="bold">F</text>
+<line x1="145" y1="223" x2="145" y2="237" stroke="red" stroke-width="4"/>
+<line x1="455" y1="223" x2="455" y2="237" stroke="red" stroke-width="4"/>
+<line x1="115" y1="150" x2="127" y2="155" stroke="red" stroke-width="4"/>
+<line x1="425" y1="150" x2="437" y2="155" stroke="red" stroke-width="4"/>
+<path d="M105 230 A35 35 0 0 1 91 190" fill="none" stroke="red" stroke-width="4"/>
+<path d="M415 230 A35 35 0 0 1 401 190" fill="none" stroke="red" stroke-width="4"/>
+</svg>`;
+}
+</script>
+</body>
+</html>
